@@ -1,0 +1,3 @@
+[submodule "external/GLRF"]
+	path = external/GLRF
+	url = https://github.com/DunkleMango/GLRF.git
