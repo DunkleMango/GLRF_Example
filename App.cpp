@@ -1,6 +1,6 @@
 #include "App.hpp"
 
-static const std::string shaderLib = "../shaders/";
+static const std::string shaderLib = "./shaders/";
 static const std::string seperator = "_";
 
 unsigned int tesselation = 0;
@@ -55,29 +55,29 @@ int main()
 
 	//create scene
 	PlaneGenerator planeGen = PlaneGenerator();
-	SceneCamera camera = SceneCamera(glm::vec3(0.f, 4.f, 10.f), upVector, origin);
+	std::shared_ptr<SceneCamera> camera(new SceneCamera(glm::vec3(0.f, 4.f, 10.f), upVector, origin));
 
-	SceneMesh floor = SceneMesh(planeGen.create(origin, glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.f, 0.f, 0.f), 64.f, 10, 5.f), GL_STATIC_DRAW, GL_TRIANGLES);
-	PointLight pointLight_white = PointLight(glm::vec3(0.f, 0.5f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), 1.f);
-	PointLight pointLight_red = PointLight(glm::vec3(2.f, 0.5f, 1.f), glm::vec3(1.f, 0.1f, 0.1f), 0.5f);
-	PointLight pointLight_blue = PointLight(glm::vec3(2.f, 0.5f, 1.4f), glm::vec3(0.1f, 0.1f, 1.f), 0.5f);
-	PointLight pointLight_green = PointLight(glm::vec3(-2.f, 0.5f, 1.f), glm::vec3(0.1f, 1.f, 0.1f), 2.f);
-	PointLight powerPointLight = PointLight(glm::vec3(0.f, 2.f, 0.f), glm::vec3(1.f, 1.f, 0.9f), 5.f);
-	DirectionalLight dirLight = DirectionalLight(0.f, 170.f, 1.f);
+	std::shared_ptr<SceneMesh> floor(new SceneMesh(planeGen.create(origin, glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.f, 0.f, 0.f), 64.f, 10, 5.f), GL_STATIC_DRAW, GL_TRIANGLES));
+	std::shared_ptr<PointLight> pointLight_white(new PointLight(glm::vec3(0.f, 0.5f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), 1.f));
+	std::shared_ptr<PointLight> pointLight_red(new PointLight(glm::vec3(2.f, 0.5f, 1.f), glm::vec3(1.f, 0.1f, 0.1f), 0.5f));
+	std::shared_ptr<PointLight> pointLight_blue(new PointLight(glm::vec3(2.f, 0.5f, 1.4f), glm::vec3(0.1f, 0.1f, 1.f), 0.5f));
+	std::shared_ptr<PointLight> pointLight_green(new PointLight(glm::vec3(-2.f, 0.5f, 1.f), glm::vec3(0.1f, 1.f, 0.1f), 2.f));
+	std::shared_ptr<PointLight> powerPointLight(new PointLight(glm::vec3(0.f, 2.f, 0.f), glm::vec3(1.f, 1.f, 0.9f), 5.f));
+	std::shared_ptr<DirectionalLight> dirLight(new DirectionalLight(0.f, 170.f, 1.f));
 
 	Material mat = Material();
 	mat.height_scale = 1.f;
 	mat.loadTextures("imported/PavingStones053_4K", seperator, "jpg");
-	floor.setMaterial(mat);
+	floor->setMaterial(mat);
 
-	Scene scene = Scene(&camera);
-	scene.addObject(&floor, glm::vec3(0.0f, 0.0f, 0.0f), noRotation);
-	scene.addObject(&pointLight_white);
-	scene.addObject(&pointLight_red);
-	scene.addObject(&pointLight_blue);
-	scene.addObject(&pointLight_green);
-	scene.addObject(&powerPointLight);
-	scene.addObject(&dirLight);
+	Scene scene = Scene(camera);
+	scene.addObject(floor, glm::vec3(0.0f, 0.0f, 0.0f), noRotation);
+	scene.addObject(pointLight_white);
+	scene.addObject(pointLight_red);
+	scene.addObject(pointLight_blue);
+	scene.addObject(pointLight_green);
+	scene.addObject(powerPointLight);
+	scene.addObject(dirLight);
 
 	ShaderOptions sceneShaderOptions;
 	sceneShaderOptions.useFrameBuffer = true;
