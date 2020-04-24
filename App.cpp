@@ -1,6 +1,7 @@
 #include "App.hpp"
 
-static const std::string shaderLib = "./shaders/";
+static const std::string cmakeSourceDir = "../../../";
+static const std::string shaderLib = cmakeSourceDir + "shaders/";
 static const std::string seperator = "_";
 
 unsigned int tesselation = 0;
@@ -67,7 +68,8 @@ int main()
 
 	Material mat = Material();
 	mat.height_scale = 1.f;
-	mat.loadTextures("imported/PavingStones053_4K", seperator, "jpg");
+	// TODO - fix path issues with textures (use absolute path?)
+	mat.loadTextures(cmakeSourceDir + "textures/", "imported/PavingStones053_4K", seperator, "jpg");
 	floor->setMaterial(mat);
 
 	Scene scene = Scene(camera);

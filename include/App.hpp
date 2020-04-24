@@ -11,7 +11,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <GLRF/Scene.hpp>
-#include <GLRF/SceneCamera.hpp>
+#include <GLRF/Camera.hpp>
 #include <GLRF/SceneObject.hpp>
 #include <GLRF/SceneLight.hpp>
 #include <GLRF/Shader.hpp>
