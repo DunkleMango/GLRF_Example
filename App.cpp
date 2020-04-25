@@ -79,7 +79,7 @@ int main()
 	powerPointLight_node.setPosition(glm::vec3(0.f, 2.f, 0.f));
 	std::shared_ptr<DirectionalLight> dirLight(new DirectionalLight(1.f));
 	SceneNode<DirectionalLight> dirLight_node(dirLight);
-	dirLight_node.rotateRad(glm::vec3(0.f, 1.f, 0.f), static_cast<float>(M_PI / 4.f));
+	dirLight_node.rotateRad(glm::vec3(0.f, 1.f, 0.f), M_PI / 4.f);
 
 	Material mat = Material();
 	mat.height_scale = 1.f;
