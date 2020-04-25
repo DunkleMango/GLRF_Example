@@ -61,25 +61,25 @@ int main()
 	std::shared_ptr<Camera> camera(new Camera(glm::vec3(0.f, 4.f, 10.f), upVector, origin));
 
 	std::shared_ptr<SceneMesh> floor(new SceneMesh(planeGen.create(origin, glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.f, 0.f, 0.f), 64.f, 10, 5.f), GL_STATIC_DRAW, GL_TRIANGLES));
-	SceneNode<SceneMesh> floor_node(*floor);
+	SceneNode<SceneMesh> floor_node(floor);
 	std::shared_ptr<PointLight> pointLight_white(new PointLight(glm::vec3(1.0f, 1.0f, 1.0f), 1.f));
-	SceneNode<PointLight> pointLight_white_node(*pointLight_white);
+	SceneNode<PointLight> pointLight_white_node(pointLight_white);
 	pointLight_white_node.setPosition(glm::vec3(0.f, 0.5f, 1.f));
 	std::shared_ptr<PointLight> pointLight_red(new PointLight(glm::vec3(1.f, 0.1f, 0.1f), 0.5f));
-	SceneNode<PointLight> pointLight_red_node(*pointLight_white);
+	SceneNode<PointLight> pointLight_red_node(pointLight_red);
 	pointLight_red_node.setPosition(glm::vec3(2.f, 0.5f, 1.f));
 	std::shared_ptr<PointLight> pointLight_blue(new PointLight(glm::vec3(0.1f, 0.1f, 1.f), 0.5f));
-	SceneNode<PointLight> pointLight_blue_node(*pointLight_white);
+	SceneNode<PointLight> pointLight_blue_node(pointLight_blue);
 	pointLight_blue_node.setPosition(glm::vec3(2.f, 0.5f, 1.4f));
 	std::shared_ptr<PointLight> pointLight_green(new PointLight(glm::vec3(0.1f, 1.f, 0.1f), 2.f));
-	SceneNode<PointLight> pointLight_green_node(*pointLight_white);
+	SceneNode<PointLight> pointLight_green_node(pointLight_green);
 	pointLight_green_node.setPosition(glm::vec3(-2.f, 0.5f, 1.f));
 	std::shared_ptr<PointLight> powerPointLight(new PointLight(glm::vec3(1.f, 1.f, 0.9f), 5.f));
-	SceneNode<PointLight> powerPointLight_node(*pointLight_white);
+	SceneNode<PointLight> powerPointLight_node(powerPointLight);
 	powerPointLight_node.setPosition(glm::vec3(0.f, 2.f, 0.f));
 	std::shared_ptr<DirectionalLight> dirLight(new DirectionalLight(1.f));
-	SceneNode<PointLight> dirLight_node(*pointLight_white);
-	dirLight_node.rotateRad(glm::vec3(0.f, 1.f, 0.f), M_PI / 4);
+	SceneNode<DirectionalLight> dirLight_node(dirLight);
+	dirLight_node.rotateRad(glm::vec3(0.f, 1.f, 0.f), static_cast<float>(M_PI / 4.f));
 
 	Material mat = Material();
 	mat.height_scale = 1.f;
