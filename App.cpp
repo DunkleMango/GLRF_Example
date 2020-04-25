@@ -1,5 +1,7 @@
 #include "App.hpp"
 
+using namespace GLRF;
+
 static const std::string cmakeSourceDir = "../../../";
 static const std::string shaderLib = cmakeSourceDir + "shaders/";
 static const std::string seperator = "_";
@@ -56,15 +58,28 @@ int main()
 
 	//create scene
 	PlaneGenerator planeGen = PlaneGenerator();
-	std::shared_ptr<SceneCamera> camera(new SceneCamera(glm::vec3(0.f, 4.f, 10.f), upVector, origin));
+	std::shared_ptr<Camera> camera(new Camera(glm::vec3(0.f, 4.f, 10.f), upVector, origin));
 
 	std::shared_ptr<SceneMesh> floor(new SceneMesh(planeGen.create(origin, glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.f, 0.f, 0.f), 64.f, 10, 5.f), GL_STATIC_DRAW, GL_TRIANGLES));
-	std::shared_ptr<PointLight> pointLight_white(new PointLight(glm::vec3(0.f, 0.5f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), 1.f));
-	std::shared_ptr<PointLight> pointLight_red(new PointLight(glm::vec3(2.f, 0.5f, 1.f), glm::vec3(1.f, 0.1f, 0.1f), 0.5f));
-	std::shared_ptr<PointLight> pointLight_blue(new PointLight(glm::vec3(2.f, 0.5f, 1.4f), glm::vec3(0.1f, 0.1f, 1.f), 0.5f));
-	std::shared_ptr<PointLight> pointLight_green(new PointLight(glm::vec3(-2.f, 0.5f, 1.f), glm::vec3(0.1f, 1.f, 0.1f), 2.f));
-	std::shared_ptr<PointLight> powerPointLight(new PointLight(glm::vec3(0.f, 2.f, 0.f), glm::vec3(1.f, 1.f, 0.9f), 5.f));
-	std::shared_ptr<DirectionalLight> dirLight(new DirectionalLight(0.f, 170.f, 1.f));
+	SceneNode<SceneMesh> floor_node(*floor);
+	std::shared_ptr<PointLight> pointLight_white(new PointLight(glm::vec3(1.0f, 1.0f, 1.0f), 1.f));
+	SceneNode<PointLight> pointLight_white_node(*pointLight_white);
+	pointLight_white_node.setPosition(glm::vec3(0.f, 0.5f, 1.f));
+	std::shared_ptr<PointLight> pointLight_red(new PointLight(glm::vec3(1.f, 0.1f, 0.1f), 0.5f));
+	SceneNode<PointLight> pointLight_red_node(*pointLight_white);
+	pointLight_red_node.setPosition(glm::vec3(2.f, 0.5f, 1.f));
+	std::shared_ptr<PointLight> pointLight_blue(new PointLight(glm::vec3(0.1f, 0.1f, 1.f), 0.5f));
+	SceneNode<PointLight> pointLight_blue_node(*pointLight_white);
+	pointLight_blue_node.setPosition(glm::vec3(2.f, 0.5f, 1.4f));
+	std::shared_ptr<PointLight> pointLight_green(new PointLight(glm::vec3(0.1f, 1.f, 0.1f), 2.f));
+	SceneNode<PointLight> pointLight_green_node(*pointLight_white);
+	pointLight_green_node.setPosition(glm::vec3(-2.f, 0.5f, 1.f));
+	std::shared_ptr<PointLight> powerPointLight(new PointLight(glm::vec3(1.f, 1.f, 0.9f), 5.f));
+	SceneNode<PointLight> powerPointLight_node(*pointLight_white);
+	powerPointLight_node.setPosition(glm::vec3(0.f, 2.f, 0.f));
+	std::shared_ptr<DirectionalLight> dirLight(new DirectionalLight(1.f));
+	SceneNode<PointLight> dirLight_node(*pointLight_white);
+	dirLight_node.rotateRad(glm::vec3(0.f, 1.f, 0.f), M_PI / 4);
 
 	Material mat = Material();
 	mat.height_scale = 1.f;
@@ -73,13 +88,13 @@ int main()
 	floor->setMaterial(mat);
 
 	Scene scene = Scene(camera);
-	scene.addObject(floor, glm::vec3(0.0f, 0.0f, 0.0f), noRotation);
-	scene.addObject(pointLight_white);
-	scene.addObject(pointLight_red);
-	scene.addObject(pointLight_blue);
-	scene.addObject(pointLight_green);
-	scene.addObject(powerPointLight);
-	scene.addObject(dirLight);
+	scene.addObject(floor_node);
+	scene.addObject(pointLight_white_node);
+	scene.addObject(pointLight_red_node);
+	scene.addObject(pointLight_blue_node);
+	scene.addObject(pointLight_green_node);
+	scene.addObject(powerPointLight_node);
+	scene.addObject(dirLight_node);
 
 	ShaderOptions sceneShaderOptions;
 	sceneShaderOptions.useFrameBuffer = true;
