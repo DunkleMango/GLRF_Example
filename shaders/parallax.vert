@@ -18,6 +18,9 @@ struct VS_OUT {
   vec3 P;
   vec3 N;
   mat3 TBN;
+  vec3 tangent_point_light_positions[MAX_POINT_LIGHTS];
+  vec3 tangent_camera_position;
+  vec3 tangent_P;
 };
 out VS_OUT VS;
 
@@ -32,4 +35,9 @@ void main() {
   vec3 N = normalize(model_normal * normalize(in_normal));
   vec3 B = normalize(model_normal * cross(in_tangent, in_normal));
   VS.TBN = transpose(mat3(T, B, N));
+  for (uint i = 0; i < pointLight_count; i++) {
+		VS.tangent_point_light_positions[i] = VS.TBN * pointLight_position[i];
+	}
+  VS.tangent_camera_position = VS.TBN * camera_position;
+  VS.tangent_P = VS.TBN * VS.P;
 }

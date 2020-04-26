@@ -85,7 +85,7 @@ int main()
 	mat.height_scale = 1.f;
 	// TODO - fix path issues with textures (use absolute path?)
 	mat.loadTextures(cmakeSourceDir + "textures/", "imported/PavingStones053_4K", seperator, "jpg");
-	floor->setMaterial(mat);
+	floor_node.getObject()->setMaterial(mat);
 
 	Scene scene = Scene(camera);
 	scene.addObject(floor_node);
@@ -94,7 +94,7 @@ int main()
 	scene.addObject(pointLight_blue_node);
 	scene.addObject(pointLight_green_node);
 	scene.addObject(powerPointLight_node);
-	scene.addObject(dirLight_node);
+	//scene.addObject(dirLight_node);
 
 	ShaderOptions sceneShaderOptions;
 	sceneShaderOptions.useFrameBuffer = true;
