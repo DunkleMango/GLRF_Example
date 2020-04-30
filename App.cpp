@@ -18,9 +18,44 @@ void retesselatePlane(SceneMesh * obj, PlaneGenerator planeGen, unsigned int new
 
 void renderPostFxNDC();
 
+ScreenResolution screenResolution;
+screenResolution.width = 1280;
+screenResolution.height = 720;
+
 MyApp::MyApp()
 {
+	ShaderOptions sceneShaderOptions;
+	sceneShaderOptions.useFrameBuffer = true;
+	sceneShaderOptions.isFrameBufferHDR = true;
+	sceneShaderOptions.texColorBufferAmount = 2;
+	sceneShaderOptions.screenResolution = this->resolution;
+	//Shader sceneShader(shaderLib, "base.vert", "base.frag", sceneShaderOptions);
+	Shader sceneShader(shaderLib, "parallax.vert", "parallax.frag", sceneShaderOptions);
 
+	ShaderOptions postBlurShaderOptions;
+	postBlurShaderOptions.useDepthBuffer = false;
+	postBlurShaderOptions.useFrameBuffer = true;
+	postBlurShaderOptions.useMultipleFrameBuffers = true;
+	postBlurShaderOptions.texColorBufferAmount = 2;
+	postBlurShaderOptions.screenResolution = screenResolution;
+	Shader postBlurShader(shaderLib, "gauss.vert", "gauss.frag", postBlurShaderOptions);
+
+	Shader postHDRShader(shaderLib, "hdr.vert", "hdr.frag", ShaderOptions());
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+	//pre-calculations
+	glm::mat4 projection = glm::perspective(glm::radians(55.0f), (GLfloat)screenResolution.width / (GLfloat)screenResolution.height, 0.1f, 100.0f);
+
+	sceneShader.use();
+
+	postBlurShader.use();
+	postBlurShader.setValue("image", 0);
+
+	postHDRShader.use();
+	postHDRShader.setValue("scene", 0);
+	postHDRShader.setValue("bloomBlur", 1);
+
+	sceneShader.use();
 }
 
 MyApp::~MyApp()
@@ -104,10 +139,6 @@ void MyApp::render()
 
 int main()
 {
-	ScreenResolution screenResolution;
-	screenResolution.width = 1280;
-	screenResolution.height = 720;
-
 	//create scene
 	PlaneGenerator planeGen = PlaneGenerator();
 	std::shared_ptr<Camera> camera(new Camera(glm::vec3(0.f, 4.f, 10.f), upVector, origin));
@@ -151,47 +182,7 @@ int main()
 	MyApp app = MyApp();
 	app.setActiveScene(&scene);
 	AppFrame appframe = AppFrame(screenResolution, &app);
-
-	ShaderOptions sceneShaderOptions;
-	sceneShaderOptions.useFrameBuffer = true;
-	sceneShaderOptions.isFrameBufferHDR = true;
-	sceneShaderOptions.texColorBufferAmount = 2;
-	sceneShaderOptions.screenResolution = screenResolution;
-	//Shader sceneShader(shaderLib, "base.vert", "base.frag", sceneShaderOptions);
-	Shader sceneShader(shaderLib, "parallax.vert", "parallax.frag", sceneShaderOptions);
-
-	ShaderOptions postBlurShaderOptions;
-	postBlurShaderOptions.useDepthBuffer = false;
-	postBlurShaderOptions.useFrameBuffer = true;
-	postBlurShaderOptions.useMultipleFrameBuffers = true;
-	postBlurShaderOptions.texColorBufferAmount = 2;
-	postBlurShaderOptions.screenResolution = screenResolution;
-	Shader postBlurShader(shaderLib, "gauss.vert", "gauss.frag", postBlurShaderOptions);
-
-	Shader postHDRShader(shaderLib, "hdr.vert", "hdr.frag", ShaderOptions());
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-	//pre-calculations
-	glm::mat4 projection = glm::perspective(glm::radians(55.0f), (GLfloat)screenResolution.width / (GLfloat)screenResolution.height, 0.1f, 100.0f);
-
-	sceneShader.use();
-
-	postBlurShader.use();
-	postBlurShader.setValue("image", 0);
-
-	postHDRShader.use();
-	postHDRShader.setValue("scene", 0);
-	postHDRShader.setValue("bloomBlur", 1);
-
-	sceneShader.use();
-
-	//rendering-loop
-	while (!glfwWindowShouldClose(window)) {
-		
-	}
-
-	glfwTerminate();
-	return 0;
+	return appframe.render();
 }
 
 void retesselatePlane(SceneMesh * obj, PlaneGenerator planeGen, unsigned int new_tesselation, glm::vec3 plane_position, glm::vec3 plane_normal, glm::vec3 plane_direction) {
