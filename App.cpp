@@ -45,7 +45,8 @@ void MyApp::configure(GLFWwindow* window)
 
 void MyApp::processUserInput(GLFWwindow* window, glm::vec2 mouse_offset)
 {
-
+	scene.processMouse(xOffset, yOffset);
+	scene.processInput(window);
 }
 
 void MyApp::updateScene()
@@ -144,12 +145,6 @@ int main()
 	while (!glfwWindowShouldClose(window)) {
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		glfwSetCursorPosCallback(window, mouse_callback);
-		
-		//input
-		processInput(window);
-		calculateMouseOffset();
-		scene.processMouse(xOffset, yOffset);
-		scene.processInput(window);
 
 		//glfwSetScrollCallback(window, scroll_callback);
 		//retesselatePlane(&obj, planeGen, next_tesselation, plane_position, plane_normal, plane_direction
