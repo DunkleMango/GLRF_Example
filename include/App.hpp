@@ -13,6 +13,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <GLRF/AppFrame.hpp>
 #include <GLRF/Scene.hpp>
 #include <GLRF/Camera.hpp>
 #include <GLRF/SceneObject.hpp>

@@ -16,10 +16,6 @@ const glm::mat4 noRotation = glm::mat4(1.0f);
 bool useHDR = true;
 float exposure = 1.0f;
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow *window);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void calculateMouseOffset();
 void retesselatePlane(SceneMesh * obj, PlaneGenerator planeGen, unsigned int new_tesselation, glm::vec3 plane_position, glm::vec3 plane_normal, glm::vec3 plane_direction);
 
 void renderPostFxNDC();
@@ -36,25 +32,8 @@ int main()
 	ScreenResolution screenResolution;
 	screenResolution.width = 1280;
 	screenResolution.height = 720;
-	lastX = (float)screenResolution.width / 2.0f;
-	lastY = (float)screenResolution.height / 2.0f;
-	currentX = lastX;
-	currentY = lastY;
-
-	GLFWwindow* window = glfwCreateWindow(screenResolution.width, screenResolution.height, "OpenGL", NULL, NULL);
-	if (window == NULL) {
-		std::cout << "Failed to create GLFW window" << std::endl;
-		glfwTerminate();
-		return -1;
-	}
-	glfwMakeContextCurrent(window);
-
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-		std::cout << "Failed to initialize GLAD" << std::endl;
-		return -1;
-	}
-
-	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	
+	AppFrame appframe = AppFrame(screenResolution);
 
 	//create scene
 	PlaneGenerator planeGen = PlaneGenerator();
@@ -195,27 +174,6 @@ int main()
 
 	glfwTerminate();
 	return 0;
-}
-
-void framebuffer_size_callback(GLFWwindow * window, int width, int height) {
-	glViewport(0, 0, width, height);
-}
-
-void processInput(GLFWwindow * window) {
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, true);
-}
-
-void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
-	currentX = (float)xpos;
-	currentY = (float)ypos;
-}
-
-void calculateMouseOffset() {
-	xOffset = currentX - lastX;
-	yOffset = lastY - currentY;
-	lastX = currentX;
-	lastY = currentY;
 }
 
 void retesselatePlane(SceneMesh * obj, PlaneGenerator planeGen, unsigned int new_tesselation, glm::vec3 plane_position, glm::vec3 plane_normal, glm::vec3 plane_direction) {
