@@ -26,6 +26,7 @@
 class MyApp : public virtual GLRF::App
 {
 private:
+	glm::mat4 projection;
 public:
 	MyApp();
 	~MyApp();

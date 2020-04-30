@@ -18,19 +18,22 @@ void retesselatePlane(SceneMesh * obj, PlaneGenerator planeGen, unsigned int new
 
 void renderPostFxNDC();
 
-ScreenResolution screenResolution;
-screenResolution.width = 1280;
-screenResolution.height = 720;
+ScreenResolution screenResolution(1280, 720);
 
 MyApp::MyApp()
 {
+	// ==== initializations ==== //
+	this->projection = glm::mat4(1.f);
+
+	// ==== registration of shaders ==== //
 	ShaderOptions sceneShaderOptions;
 	sceneShaderOptions.useFrameBuffer = true;
 	sceneShaderOptions.isFrameBufferHDR = true;
 	sceneShaderOptions.texColorBufferAmount = 2;
-	sceneShaderOptions.screenResolution = this->resolution;
+	sceneShaderOptions.screenResolution = screenResolution;
 	//Shader sceneShader(shaderLib, "base.vert", "base.frag", sceneShaderOptions);
 	Shader sceneShader(shaderLib, "parallax.vert", "parallax.frag", sceneShaderOptions);
+	this->shaders.insert(std::pair<std::string, Shader>("sceneShader", sceneShader));
 
 	ShaderOptions postBlurShaderOptions;
 	postBlurShaderOptions.useDepthBuffer = false;
@@ -39,23 +42,10 @@ MyApp::MyApp()
 	postBlurShaderOptions.texColorBufferAmount = 2;
 	postBlurShaderOptions.screenResolution = screenResolution;
 	Shader postBlurShader(shaderLib, "gauss.vert", "gauss.frag", postBlurShaderOptions);
+	this->shaders.insert(std::pair<std::string, Shader>("postBlurShader", postBlurShader));
 
 	Shader postHDRShader(shaderLib, "hdr.vert", "hdr.frag", ShaderOptions());
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-	//pre-calculations
-	glm::mat4 projection = glm::perspective(glm::radians(55.0f), (GLfloat)screenResolution.width / (GLfloat)screenResolution.height, 0.1f, 100.0f);
-
-	sceneShader.use();
-
-	postBlurShader.use();
-	postBlurShader.setValue("image", 0);
-
-	postHDRShader.use();
-	postHDRShader.setValue("scene", 0);
-	postHDRShader.setValue("bloomBlur", 1);
-
-	sceneShader.use();
+	this->shaders.insert(std::pair<std::string, Shader>("postHDRShader", postHDRShader));
 }
 
 MyApp::~MyApp()
@@ -78,6 +68,25 @@ void MyApp::configure(GLFWwindow* window)
 	glEnable(GL_CULL_FACE);
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+	//pre-calculations
+	this->projection = glm::perspective(glm::radians(55.0f), (GLfloat)screenResolution.width / (GLfloat)screenResolution.height, 0.1f, 100.0f);
+
+	Shader sceneShader = this->shaders.find("sceneShader")->second;
+	sceneShader.use();
+
+	Shader postBlurShader = this->shaders.find("postBlurShader")->second;
+	postBlurShader.use();
+	postBlurShader.setValue("image", 0);
+
+	Shader postHDRShader = this->shaders.find("postHDRShader")->second;
+	postHDRShader.use();
+	postHDRShader.setValue("scene", 0);
+	postHDRShader.setValue("bloomBlur", 1);
+
+	sceneShader.use();
 }
 
 void MyApp::processUserInput(GLFWwindow* window, glm::vec2 mouse_offset)
@@ -94,7 +103,8 @@ void MyApp::updateScene()
 void MyApp::render()
 {
 	//updates
-	sceneShader.setValue("projection", projection);
+	Shader sceneShader = this->shaders.find("sceneShader")->second;
+	sceneShader.setValue("projection", this->projection);
 
 	//rendering
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -108,6 +118,7 @@ void MyApp::render()
 
 	bool horizontal = true, first_iteration = true;
 	unsigned int amount = 0;
+	Shader postBlurShader = this->shaders.find("postBlurShader")->second;
 	postBlurShader.use();
 	for (unsigned int i = 0; i < amount; i++) {
 		unsigned int bufferOne = horizontal ? 0 : 1;
@@ -125,6 +136,7 @@ void MyApp::render()
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	Shader postHDRShader = this->shaders.find("postHDRShader")->second;
 	postHDRShader.use();
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, sceneShader.getColorBuffer(0));
@@ -162,7 +174,7 @@ int main()
 	powerPointLight_node.setPosition(glm::vec3(0.f, 2.f, 0.f));
 	std::shared_ptr<DirectionalLight> dirLight(new DirectionalLight(1.f));
 	SceneNode<DirectionalLight> dirLight_node(dirLight);
-	dirLight_node.rotateRad(glm::vec3(0.f, 1.f, 0.f), M_PI / 4.f);
+	dirLight_node.rotateRad(glm::vec3(0.f, 1.f, 0.f), static_cast<float>(M_PI) / 4.f);
 
 	Material mat = Material();
 	mat.height_scale = 1.f;
