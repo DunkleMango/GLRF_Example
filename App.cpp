@@ -41,12 +41,13 @@ void MyApp::configure(GLFWwindow* window)
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_MULTISAMPLE);
 	glEnable(GL_CULL_FACE);
+
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 void MyApp::processUserInput(GLFWwindow* window, glm::vec2 mouse_offset)
 {
-	scene.processMouse(xOffset, yOffset);
-	scene.processInput(window);
+	
 }
 
 void MyApp::updateScene()
@@ -56,7 +57,52 @@ void MyApp::updateScene()
 
 void MyApp::render()
 {
+	//glfwSetScrollCallback(window, scroll_callback);
+	//retesselatePlane(&obj, planeGen, next_tesselation, plane_position, plane_normal, plane_direction
 
+	//updates
+	sceneShader.setValue("projection", projection);
+
+	//rendering
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, sceneShader.getFrameBuffer(0));
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	sceneShader.use();
+	scene.draw(sceneShader);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	bool horizontal = true, first_iteration = true;
+	unsigned int amount = 0;
+	postBlurShader.use();
+	for (unsigned int i = 0; i < amount; i++) {
+		unsigned int bufferOne = horizontal ? 0 : 1;
+		unsigned int bufferTwo = horizontal ? 1 : 0;
+		glBindFramebuffer(GL_FRAMEBUFFER, postBlurShader.getFrameBuffer(bufferOne));
+		postBlurShader.setValue("horizontal", horizontal);
+		postBlurShader.setValue("first_iteration", first_iteration);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, first_iteration ? sceneShader.getColorBuffer(1) : postBlurShader.getColorBuffer(bufferTwo));  // bind texture of other framebuffer (or scene if first iteration)
+		renderPostFxNDC();
+		horizontal = !horizontal;
+		if (first_iteration)
+			first_iteration = false;
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	postHDRShader.use();
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, sceneShader.getColorBuffer(0));
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, postBlurShader.getColorBuffer(horizontal ? 1 : 0));
+	postHDRShader.setValue("exposure", exposure);
+	renderPostFxNDC();
+
+	//handle events and swap buffers
+	glfwPollEvents();
+	glfwSwapBuffers(window);
 }
 
 int main()
@@ -64,9 +110,6 @@ int main()
 	ScreenResolution screenResolution;
 	screenResolution.width = 1280;
 	screenResolution.height = 720;
-	
-	MyApp app = MyApp();
-	AppFrame appframe = AppFrame(screenResolution, app);
 
 	//create scene
 	PlaneGenerator planeGen = PlaneGenerator();
@@ -108,6 +151,10 @@ int main()
 	scene.addObject(powerPointLight_node);
 	//scene.addObject(dirLight_node);
 
+	MyApp app = MyApp();
+	app.setActiveScene(&scene);
+	AppFrame appframe = AppFrame(screenResolution, &app);
+
 	ShaderOptions sceneShaderOptions;
 	sceneShaderOptions.useFrameBuffer = true;
 	sceneShaderOptions.isFrameBufferHDR = true;
@@ -143,55 +190,7 @@ int main()
 
 	//rendering-loop
 	while (!glfwWindowShouldClose(window)) {
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-		glfwSetCursorPosCallback(window, mouse_callback);
-
-		//glfwSetScrollCallback(window, scroll_callback);
-		//retesselatePlane(&obj, planeGen, next_tesselation, plane_position, plane_normal, plane_direction
-
-		//updates
-		sceneShader.setValue("projection", projection);
-
-		//rendering
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, sceneShader.getFrameBuffer(0));
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		sceneShader.use();
-		scene.draw(sceneShader);
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		
-		bool horizontal = true, first_iteration = true;
-		unsigned int amount = 0;
-		postBlurShader.use();
-		for (unsigned int i = 0; i < amount; i++) {
-			unsigned int bufferOne = horizontal ? 0 : 1;
-			unsigned int bufferTwo = horizontal ? 1 : 0;
-			glBindFramebuffer(GL_FRAMEBUFFER, postBlurShader.getFrameBuffer(bufferOne));
-			postBlurShader.setValue("horizontal", horizontal);
-			postBlurShader.setValue("first_iteration", first_iteration);
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, first_iteration ? sceneShader.getColorBuffer(1) : postBlurShader.getColorBuffer(bufferTwo));  // bind texture of other framebuffer (or scene if first iteration)
-			renderPostFxNDC();
-			horizontal = !horizontal;
-			if (first_iteration)
-				first_iteration = false;
-		}
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		postHDRShader.use();
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, sceneShader.getColorBuffer(0));
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, postBlurShader.getColorBuffer(horizontal ? 1 : 0));
-		postHDRShader.setValue("exposure", exposure);
-		renderPostFxNDC();
-		
-		//handle events and swap buffers
-		glfwPollEvents();
-		glfwSwapBuffers(window);
 	}
 
 	glfwTerminate();
