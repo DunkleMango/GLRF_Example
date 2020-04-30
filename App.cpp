@@ -47,19 +47,17 @@ void MyApp::configure(GLFWwindow* window)
 
 void MyApp::processUserInput(GLFWwindow* window, glm::vec2 mouse_offset)
 {
-	
+	forwardUserInputToScene(window, mouse_offset);
+	//glfwSetScrollCallback(window, scroll_callback);
 }
 
 void MyApp::updateScene()
 {
-
+	//retesselatePlane(&obj, planeGen, next_tesselation, plane_position, plane_normal, plane_direction
 }
 
 void MyApp::render()
 {
-	//glfwSetScrollCallback(window, scroll_callback);
-	//retesselatePlane(&obj, planeGen, next_tesselation, plane_position, plane_normal, plane_direction
-
 	//updates
 	sceneShader.setValue("projection", projection);
 
@@ -70,7 +68,7 @@ void MyApp::render()
 	glBindFramebuffer(GL_FRAMEBUFFER, sceneShader.getFrameBuffer(0));
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	sceneShader.use();
-	scene.draw(sceneShader);
+	this->activeScene->draw(sceneShader);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	bool horizontal = true, first_iteration = true;
@@ -102,7 +100,6 @@ void MyApp::render()
 
 	//handle events and swap buffers
 	glfwPollEvents();
-	glfwSwapBuffers(window);
 }
 
 int main()
