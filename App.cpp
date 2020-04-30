@@ -7,8 +7,6 @@ static const std::string shaderLib = cmakeSourceDir + "shaders/";
 static const std::string seperator = "_";
 
 unsigned int tesselation = 0;
-float lastX, lastY, currentX, currentY;
-float xOffset, yOffset;
 const glm::vec3 upVector = glm::vec3(0.0f, 1.0f, 0.0f);
 const glm::vec3 origin = glm::vec3(0.0f);
 const glm::mat4 noRotation = glm::mat4(1.0f);
@@ -20,7 +18,17 @@ void retesselatePlane(SceneMesh * obj, PlaneGenerator planeGen, unsigned int new
 
 void renderPostFxNDC();
 
-int main()
+MyApp::MyApp()
+{
+
+}
+
+MyApp::~MyApp()
+{
+
+}
+
+void MyApp::configure(GLFWwindow* window)
 {
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -29,11 +37,35 @@ int main()
 	//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_SAMPLES, 4);
 
+	//pre-render updates
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_MULTISAMPLE);
+	glEnable(GL_CULL_FACE);
+}
+
+void MyApp::processUserInput(GLFWwindow* window, glm::vec2 mouse_offset)
+{
+
+}
+
+void MyApp::updateScene()
+{
+
+}
+
+void MyApp::render()
+{
+
+}
+
+int main()
+{
 	ScreenResolution screenResolution;
 	screenResolution.width = 1280;
 	screenResolution.height = 720;
 	
-	AppFrame appframe = AppFrame(screenResolution);
+	MyApp app = MyApp();
+	AppFrame appframe = AppFrame(screenResolution, app);
 
 	//create scene
 	PlaneGenerator planeGen = PlaneGenerator();
@@ -96,11 +128,6 @@ int main()
 
 	//pre-calculations
 	glm::mat4 projection = glm::perspective(glm::radians(55.0f), (GLfloat)screenResolution.width / (GLfloat)screenResolution.height, 0.1f, 100.0f);
-
-	//pre-render updates
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_MULTISAMPLE);
-	glEnable(GL_CULL_FACE);
 
 	sceneShader.use();
 
