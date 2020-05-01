@@ -7,6 +7,8 @@ static const std::string shaderLib = cmakeSourceDir + "shaders/";
 static const std::string seperator = "_";
 
 unsigned int tesselation = 0;
+float lastX, lastY, currentX, currentY;
+float xOffset, yOffset;
 const glm::vec3 upVector = glm::vec3(0.0f, 1.0f, 0.0f);
 const glm::vec3 origin = glm::vec3(0.0f);
 const glm::mat4 noRotation = glm::mat4(1.0f);
@@ -14,46 +16,11 @@ const glm::mat4 noRotation = glm::mat4(1.0f);
 bool useHDR = true;
 float exposure = 1.0f;
 
-void retesselatePlane(SceneMesh * obj, PlaneGenerator planeGen, unsigned int new_tesselation, glm::vec3 plane_position, glm::vec3 plane_normal, glm::vec3 plane_direction);
+void retesselatePlane(SceneMesh* obj, PlaneGenerator planeGen, unsigned int new_tesselation, glm::vec3 plane_position, glm::vec3 plane_normal, glm::vec3 plane_direction);
 
 void renderPostFxNDC();
 
-ScreenResolution screenResolution(1280, 720);
-
-MyApp::MyApp()
-{
-	// ==== initializations ==== //
-	this->projection = glm::mat4(1.f);
-
-	// ==== registration of shaders ==== //
-	ShaderOptions sceneShaderOptions;
-	sceneShaderOptions.useFrameBuffer = true;
-	sceneShaderOptions.isFrameBufferHDR = true;
-	sceneShaderOptions.texColorBufferAmount = 2;
-	sceneShaderOptions.screenResolution = screenResolution;
-	//Shader sceneShader(shaderLib, "base.vert", "base.frag", sceneShaderOptions);
-	Shader sceneShader(shaderLib, "parallax.vert", "parallax.frag", sceneShaderOptions);
-	this->shaders.insert(std::pair<std::string, Shader>("sceneShader", sceneShader));
-
-	ShaderOptions postBlurShaderOptions;
-	postBlurShaderOptions.useDepthBuffer = false;
-	postBlurShaderOptions.useFrameBuffer = true;
-	postBlurShaderOptions.useMultipleFrameBuffers = true;
-	postBlurShaderOptions.texColorBufferAmount = 2;
-	postBlurShaderOptions.screenResolution = screenResolution;
-	Shader postBlurShader(shaderLib, "gauss.vert", "gauss.frag", postBlurShaderOptions);
-	this->shaders.insert(std::pair<std::string, Shader>("postBlurShader", postBlurShader));
-
-	Shader postHDRShader(shaderLib, "hdr.vert", "hdr.frag", ShaderOptions());
-	this->shaders.insert(std::pair<std::string, Shader>("postHDRShader", postHDRShader));
-}
-
-MyApp::~MyApp()
-{
-
-}
-
-void MyApp::configure(GLFWwindow* window)
+int main()
 {
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -62,95 +29,12 @@ void MyApp::configure(GLFWwindow* window)
 	//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_SAMPLES, 4);
 
-	//pre-render updates
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_MULTISAMPLE);
-	glEnable(GL_CULL_FACE);
+	ScreenResolution screenResolution;
+	screenResolution.width = 1280;
+	screenResolution.height = 720;
 
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	AppFrame appframe = AppFrame(screenResolution);
 
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-	//pre-calculations
-	this->projection = glm::perspective(glm::radians(55.0f), (GLfloat)screenResolution.width / (GLfloat)screenResolution.height, 0.1f, 100.0f);
-
-	Shader sceneShader = this->shaders.find("sceneShader")->second;
-	sceneShader.use();
-
-	Shader postBlurShader = this->shaders.find("postBlurShader")->second;
-	postBlurShader.use();
-	postBlurShader.setValue("image", 0);
-
-	Shader postHDRShader = this->shaders.find("postHDRShader")->second;
-	postHDRShader.use();
-	postHDRShader.setValue("scene", 0);
-	postHDRShader.setValue("bloomBlur", 1);
-
-	sceneShader.use();
-}
-
-void MyApp::processUserInput(GLFWwindow* window, glm::vec2 mouse_offset)
-{
-	forwardUserInputToScene(window, mouse_offset);
-	//glfwSetScrollCallback(window, scroll_callback);
-}
-
-void MyApp::updateScene()
-{
-	//retesselatePlane(&obj, planeGen, next_tesselation, plane_position, plane_normal, plane_direction
-}
-
-void MyApp::render()
-{
-	//updates
-	Shader sceneShader = this->shaders.find("sceneShader")->second;
-	sceneShader.setValue("projection", this->projection);
-
-	//rendering
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, sceneShader.getFrameBuffer(0));
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	sceneShader.use();
-	this->activeScene->draw(sceneShader);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	bool horizontal = true, first_iteration = true;
-	unsigned int amount = 0;
-	Shader postBlurShader = this->shaders.find("postBlurShader")->second;
-	postBlurShader.use();
-	for (unsigned int i = 0; i < amount; i++) {
-		unsigned int bufferOne = horizontal ? 0 : 1;
-		unsigned int bufferTwo = horizontal ? 1 : 0;
-		glBindFramebuffer(GL_FRAMEBUFFER, postBlurShader.getFrameBuffer(bufferOne));
-		postBlurShader.setValue("horizontal", horizontal);
-		postBlurShader.setValue("first_iteration", first_iteration);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, first_iteration ? sceneShader.getColorBuffer(1) : postBlurShader.getColorBuffer(bufferTwo));  // bind texture of other framebuffer (or scene if first iteration)
-		renderPostFxNDC();
-		horizontal = !horizontal;
-		if (first_iteration)
-			first_iteration = false;
-	}
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	Shader postHDRShader = this->shaders.find("postHDRShader")->second;
-	postHDRShader.use();
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, sceneShader.getColorBuffer(0));
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, postBlurShader.getColorBuffer(horizontal ? 1 : 0));
-	postHDRShader.setValue("exposure", exposure);
-	renderPostFxNDC();
-
-	//handle events and swap buffers
-	glfwPollEvents();
-}
-
-int main()
-{
 	//create scene
 	PlaneGenerator planeGen = PlaneGenerator();
 	std::shared_ptr<Camera> camera(new Camera(glm::vec3(0.f, 4.f, 10.f), upVector, origin));
@@ -174,7 +58,7 @@ int main()
 	powerPointLight_node.setPosition(glm::vec3(0.f, 2.f, 0.f));
 	std::shared_ptr<DirectionalLight> dirLight(new DirectionalLight(1.f));
 	SceneNode<DirectionalLight> dirLight_node(dirLight);
-	dirLight_node.rotateRad(glm::vec3(0.f, 1.f, 0.f), static_cast<float>(M_PI) / 4.f);
+	dirLight_node.rotateRad(glm::vec3(0.f, 1.f, 0.f), M_PI / 4.f);
 
 	Material mat = Material();
 	mat.height_scale = 1.f;
@@ -191,13 +75,108 @@ int main()
 	scene.addObject(powerPointLight_node);
 	//scene.addObject(dirLight_node);
 
-	MyApp app = MyApp();
-	app.setActiveScene(&scene);
-	AppFrame appframe = AppFrame(screenResolution, &app);
-	return appframe.render();
+	ShaderOptions sceneShaderOptions;
+	sceneShaderOptions.useFrameBuffer = true;
+	sceneShaderOptions.isFrameBufferHDR = true;
+	sceneShaderOptions.texColorBufferAmount = 2;
+	sceneShaderOptions.screenResolution = screenResolution;
+	//Shader sceneShader(shaderLib, "base.vert", "base.frag", sceneShaderOptions);
+	Shader sceneShader(shaderLib, "parallax.vert", "parallax.frag", sceneShaderOptions);
+
+	ShaderOptions postBlurShaderOptions;
+	postBlurShaderOptions.useDepthBuffer = false;
+	postBlurShaderOptions.useFrameBuffer = true;
+	postBlurShaderOptions.useMultipleFrameBuffers = true;
+	postBlurShaderOptions.texColorBufferAmount = 2;
+	postBlurShaderOptions.screenResolution = screenResolution;
+	Shader postBlurShader(shaderLib, "gauss.vert", "gauss.frag", postBlurShaderOptions);
+
+	Shader postHDRShader(shaderLib, "hdr.vert", "hdr.frag", ShaderOptions());
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+	//pre-calculations
+	glm::mat4 projection = glm::perspective(glm::radians(55.0f), (GLfloat)screenResolution.width / (GLfloat)screenResolution.height, 0.1f, 100.0f);
+
+	//pre-render updates
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_MULTISAMPLE);
+	glEnable(GL_CULL_FACE);
+
+	sceneShader.use();
+
+	postBlurShader.use();
+	postBlurShader.setValue("image", 0);
+
+	postHDRShader.use();
+	postHDRShader.setValue("scene", 0);
+	postHDRShader.setValue("bloomBlur", 1);
+
+	sceneShader.use();
+
+	//rendering-loop
+	while (!glfwWindowShouldClose(window)) {
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		glfwSetCursorPosCallback(window, mouse_callback);
+
+		//input
+		processInput(window);
+		calculateMouseOffset();
+		scene.processMouse(xOffset, yOffset);
+		scene.processInput(window);
+
+		//glfwSetScrollCallback(window, scroll_callback);
+		//retesselatePlane(&obj, planeGen, next_tesselation, plane_position, plane_normal, plane_direction
+
+		//updates
+		sceneShader.setValue("projection", projection);
+
+		//rendering
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, sceneShader.getFrameBuffer(0));
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		sceneShader.use();
+		scene.draw(sceneShader);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		bool horizontal = true, first_iteration = true;
+		unsigned int amount = 0;
+		postBlurShader.use();
+		for (unsigned int i = 0; i < amount; i++) {
+			unsigned int bufferOne = horizontal ? 0 : 1;
+			unsigned int bufferTwo = horizontal ? 1 : 0;
+			glBindFramebuffer(GL_FRAMEBUFFER, postBlurShader.getFrameBuffer(bufferOne));
+			postBlurShader.setValue("horizontal", horizontal);
+			postBlurShader.setValue("first_iteration", first_iteration);
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, first_iteration ? sceneShader.getColorBuffer(1) : postBlurShader.getColorBuffer(bufferTwo));  // bind texture of other framebuffer (or scene if first iteration)
+			renderPostFxNDC();
+			horizontal = !horizontal;
+			if (first_iteration)
+				first_iteration = false;
+		}
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		postHDRShader.use();
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, sceneShader.getColorBuffer(0));
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, postBlurShader.getColorBuffer(horizontal ? 1 : 0));
+		postHDRShader.setValue("exposure", exposure);
+		renderPostFxNDC();
+
+		//handle events and swap buffers
+		glfwPollEvents();
+		glfwSwapBuffers(window);
+	}
+
+	glfwTerminate();
+	return 0;
 }
 
-void retesselatePlane(SceneMesh * obj, PlaneGenerator planeGen, unsigned int new_tesselation, glm::vec3 plane_position, glm::vec3 plane_normal, glm::vec3 plane_direction) {
+void retesselatePlane(SceneMesh* obj, PlaneGenerator planeGen, unsigned int new_tesselation, glm::vec3 plane_position, glm::vec3 plane_normal, glm::vec3 plane_direction) {
 	if (new_tesselation != tesselation) {
 		obj->update(planeGen.create(plane_position, plane_normal, plane_direction, 1.0, new_tesselation, 1.0f));
 		tesselation = new_tesselation;

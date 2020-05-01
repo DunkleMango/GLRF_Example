@@ -22,16 +22,3 @@
 #include <GLRF/VertexFormat.hpp>
 #include <GLRF/PlaneGenerator.hpp>
 #include <GLRF/Material.hpp>
-
-class MyApp : public virtual GLRF::App
-{
-private:
-	glm::mat4 projection;
-public:
-	MyApp();
-	~MyApp();
-	void configure(GLFWwindow* window);
-	void processUserInput(GLFWwindow* window, glm::vec2 mouse_offset);
-	void updateScene();
-	void render();
-};
