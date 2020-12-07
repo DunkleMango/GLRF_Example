@@ -12,27 +12,24 @@ struct Light {
 	float metallic;
 	float ao;
 };
+
+// TODO - Nested struct problem?
+struct MaterialProperty {
+	vec4 default_value;
+	bool use_texture;
+	sampler2D texture;
+}
 struct Material {
-	vec3 albedo;
-	float roughness;
-	float metallic;
-  	float ao;
-	float height;
-	bool useTextureAlbedo;
-	bool useTextureNormal;
-	bool useTextureRoughness;
-	bool useTextureMetallic;
-	bool useTextureAo;
-	bool useTextureHeight;
+	MaterialProperty albedo;
+	MaterialProperty normal;
+	MaterialProperty roughness;
+	MaterialProperty metallic;
+	MaterialProperty ao;
+	MaterialProperty height;
 	float height_scale;
-	sampler2D textureAlbedo;
-	sampler2D textureNormal;
-	sampler2D textureRoughness;
-	sampler2D textureMetallic;
-	sampler2D textureAo;
-	sampler2D textureHeight;
-};
+}
 uniform Material material;
+
 uniform uint pointLight_count;
 uniform vec3 pointLight_color[MAX_POINT_LIGHTS];
 uniform float pointLight_power[MAX_POINT_LIGHTS];
@@ -56,6 +53,7 @@ in VS_OUT VS;
 layout (location = 0) out vec4 frag_color;
 layout (location = 1) out vec4 bright_color;
 
+vec4 getMaterialPropertyValue(MaterialProperty property, vec2 uv);
 vec3 fresnelSchlick(float cosTheta, vec3 F0);
 float DistributionGGX(vec3 N, vec3 H, float roughness);
 float GeometrySchlickGGX(float NdotV, float roughness);
@@ -77,18 +75,11 @@ void main() {
 	int count;
 	vec2 uv_parallax = (material.useTextureHeight) ? ParallaxMapping(VS.texcoord, V, 2000, count) : VS.texcoord;
 
-	vec3 albedo = material.albedo;
-	float roughness = material.roughness;
-	float metallic = material.metallic;
-	float ao = material.ao;
-	if (material.useTextureAlbedo) albedo = texture(material.textureAlbedo, uv_parallax).rgb;
-	if (material.useTextureRoughness) roughness = texture(material.textureRoughness, uv_parallax).r;
-	if (material.useTextureMetallic) metallic = texture(material.textureMetallic, uv_parallax).r;
-	if (material.useTextureAo) ao = texture(material.textureAo, uv_parallax).r;
-
-	if (material.useTextureNormal) {
-		N = normalize(texture(material.textureNormal, uv_parallax).rgb * 2.0 - 1.0);
-	}
+	N = normalize(getMaterialPropertyValue(material.normal).rgb * 2.0 - 1.0);
+	vec3 albedo 	= getMaterialPropertyValue(material.albedo, uv_parallax).rgb;
+	float roughness = getMaterialPropertyValue(material.roughness, uv_parallax).r;
+	float metallic 	= getMaterialPropertyValue(material.metallic, uv_parallax).r;
+	float ao 		= getMaterialPropertyValue(material.ao, uv_parallax).r;
 
 	vec3 F0 = vec3(0.04);
 	F0 = mix(F0, albedo, metallic);
@@ -131,6 +122,7 @@ void main() {
   	vec3 color = ambient + Lo;
 	// color = vec3(0.1 + 0.9 / (float(pointLight_count) + 1.0));
 	// if (VS.P.x > 0) color = vec3(1.0);
+	color = vec3(0.5, 0.0, 0.75);
   	frag_color = vec4(color, 1.0);
 
 	float brightness = dot(frag_color.rgb, vec3(0.2126, 0.7152, 0.0722));
@@ -139,6 +131,13 @@ void main() {
 	} else {
 		bright_color = vec4(0.0, 0.0, 0.0, 1.0);
 	}
+}
+
+vec4 getMaterialPropertyValue(MaterialProperty property, vec2 uv) {
+	if (property.use_texture) {
+		return texture(property.texture, uv);
+	}
+	return property.default_value;
 }
 
 float getDepthFromHeightMap(sampler2D height_map, vec2 texcoord) {
@@ -150,6 +149,10 @@ float normalizeDepth(float depth) {
 }
 
 vec2 ParallaxMapping(vec2 uv, vec3 V, int max_layers, out int count) {
+	if (!material.height.use_texture) {
+		count = 0;
+		return uv;
+	}
 	const float dist = length(VS.tangent_camera_position - VS.tangent_P);
 	const float num_layers = mix(mix(1, max_layers, abs(V.z)), max_layers, 1.0 / (1.0 + dist * dist));
 	//const float num_layers = max_layers;
@@ -160,18 +163,18 @@ vec2 ParallaxMapping(vec2 uv, vec3 V, int max_layers, out int count) {
 	vec2 uv_delta = P / num_layers;
 
 	vec2 uv_cur = uv;
-	float depth_cur = normalizeDepth(getDepthFromHeightMap(material.textureHeight, uv_cur));
+	float depth_cur = normalizeDepth(getDepthFromHeightMap(material.height.texture, uv_cur));
 
 	while(layer_depth_cur < depth_cur) {
 		uv_cur -= uv_delta;
-		depth_cur = normalizeDepth(getDepthFromHeightMap(material.textureHeight, uv_cur));
+		depth_cur = normalizeDepth(getDepthFromHeightMap(material.height.texture, uv_cur));
 		layer_depth_cur += layer_depth;
 		++count;
 	}
 
 	vec2 uv_prev = uv_cur + uv_delta;
 	float post_intersection_depth = depth_cur - layer_depth_cur;
-	float pre_intersection_depth = normalizeDepth(getDepthFromHeightMap(material.textureHeight, uv_prev))
+	float pre_intersection_depth = normalizeDepth(getDepthFromHeightMap(material.height.texture, uv_prev))
 		- layer_depth_cur + layer_depth;
 	
 	float weight = post_intersection_depth / (post_intersection_depth - pre_intersection_depth);
