@@ -138,7 +138,7 @@ int main()
 	auto powerPointLight_node = scene.addObject(powerPointLight);
 	powerPointLight_node->setPosition(glm::vec3(0.f, 2.f, 0.f));
 	auto dirLight_node = scene.addObject(dirLight);
-	dirLight_node->rotateRad(glm::vec3(0.f, 1.f, 0.f), float(M_PI / 4.0));
+	dirLight_node->rotateDeg(glm::vec3(1.f, 0.f, 0.f), -45.f);
 	std::cout << "[Scene] " << glGetError() << std::endl;
 
 	// ======= SET SHADERS - SCENE OBJECTS ======= //
