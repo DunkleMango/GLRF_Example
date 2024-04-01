@@ -81,7 +81,7 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness);
 vec3 renderLightInfluence(Light light);
 float getDepthFromHeightMap(sampler2D height_map, vec2 texcoord);
 float normalizeDepth(float depth);
-vec2 ParallaxMapping(vec2 uv, vec3 V, int max_layers, out int count);
+vec2 ParallaxMapping(vec2 uv, vec3 V);
 
 void main() {
 	vec3 pL[MAX_POINT_LIGHTS];
@@ -92,10 +92,8 @@ void main() {
 	vec3 N = vec3(0.0, 0.0, 1.0);
 	vec3 V = normalize(VS.tangent_camera_position - VS.tangent_P);
 
-	int max_count = 4000;
-	int count;
-	// vec2 uv_parallax = (material.height.use_texture) ? ParallaxMapping(VS.texcoord, V, max_count, count) : VS.texcoord;
-	vec2 uv_parallax = VS.texcoord;
+	int max_count = 128;
+	vec2 uv_parallax = (material.height.use_texture) ? ParallaxMapping(VS.texcoord, V) : VS.texcoord;
 
 	N = normalize(getMaterialPropertyValue(material.normal, uv_parallax) * 2.0 - 1.0);
 	if (!gl_FrontFacing)
@@ -146,13 +144,15 @@ void main() {
 
   	vec3 ambient = vec3(0.03) * albedo * ao;
   	vec3 color = ambient + Lo;
-	//color = getMaterialPropertyValue(material.albedo, VS.texcoord);
-	//color = vec3(1.0 / float(count) + 0.2);
-	//color = vec3(getMaterialPropertyValue(material.height, VS.texcoord));
-	//color = getMaterialPropertyValue(material.normal, VS.texcoord);
-	//color = vec3(VS.texcoord, 0.0);
-	//color = vec3(2 * float(count) / float(max_count));
-	//color = material.albedo.use_texture ? glm::vec3(0.5, 0.0, 0.0) : glm::vec3(0.0, 0.0, 0.5) + material.albedo.value_default;
+	// color = getMaterialPropertyValue(material.albedo, VS.texcoord);
+	// color = vec3(1.0 / float(count) + 0.2);
+	// color = vec3(getMaterialPropertyValue(material.height, VS.texcoord));
+	// color = getMaterialPropertyValue(material.normal, VS.texcoord);
+	// color = vec3(VS.texcoord, 0.0);
+	// color = vec3(2 * float(count) / float(max_count));
+	// color = material.albedo.use_texture ? albedo : glm::vec3(0.0, 0.0, 0.5) + material.albedo.value_default;
+	// color = vec3(mix(1.0, 0.0, max(dot(vec3(0.0, 0.0, 1.0), V), 0.0)));
+
   	frag_color = vec4(color, 1.0);
 
 	float brightness = dot(frag_color.rgb, vec3(0.2126, 0.7152, 0.0722));
@@ -184,24 +184,21 @@ float getDepthFromHeightMap(sampler2D height_map, vec2 texcoord) {
 }
 
 float normalizeDepth(float depth) {
-	return 0.1 * material.height_scale * depth;
+	return material.height_scale * depth;
 }
 
-vec2 ParallaxMapping(vec2 uv, vec3 V, int max_layers, out int count) {
+vec2 ParallaxMapping(vec2 uv, vec3 V) {
 	if (!material.height.use_texture) {
-		count = 0;
 		return uv;
 	}
-	const float dist = length(VS.tangent_camera_position - VS.tangent_P);
-	const float capped_dist = max(0, dist - 5.0) / 4.0;
-	const float dist2 = capped_dist * capped_dist;
-	const float ratio = 1.0 / (1.0 + dist2);
-	const float num_layers = mix(mix(1, max_layers, ratio), 1, abs(V.z));
-	//const float num_layers = max_layers;
-	count = 1;
+	const float min_layers = 128.0;
+	const float max_layers = 256.0;
+	const float num_layers = mix(max_layers, min_layers, abs(dot(vec3(0.0, 0.0, 1.0), V)));
+
 	float layer_depth = 1.0 / num_layers;
 	float layer_depth_cur = 0.0;
-	vec2 P = V.xy;
+
+	vec2 P = V.xy / V.z * 0.05;
 	vec2 uv_delta = P / num_layers;
 
 	vec2 uv_cur = uv;
@@ -211,7 +208,6 @@ vec2 ParallaxMapping(vec2 uv, vec3 V, int max_layers, out int count) {
 		uv_cur -= uv_delta;
 		depth_cur = normalizeDepth(getDepthFromHeightMap(material.height.texture, uv_cur));
 		layer_depth_cur += layer_depth;
-		++count;
 	}
 
 	vec2 uv_prev = uv_cur + uv_delta;
@@ -268,6 +264,5 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
     float ggx2  = GeometrySchlickGGX(NdotV, k);
     float ggx1  = GeometrySchlickGGX(NdotL, k);
 
-	return ggx1;
     return ggx1 * ggx2;
 }

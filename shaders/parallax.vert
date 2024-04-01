@@ -33,8 +33,8 @@ void main() {
   VS.N = model_normal * in_normal;
   VS.texcoord = in_uv;
 
-  vec3 T = normalize(model_normal * normalize(in_tangent));
-  vec3 N = normalize(model_normal * normalize(in_normal));
+  vec3 T = normalize(model_normal * in_tangent);
+  vec3 N = normalize(model_normal * in_normal);
   vec3 B = normalize(model_normal * cross(in_tangent, in_normal));
   VS.TBN = transpose(mat3(T, B, N));
   for (uint i = 0; i < pointLight_count; i++) {
