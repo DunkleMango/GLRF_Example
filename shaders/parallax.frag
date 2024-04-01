@@ -13,21 +13,36 @@ struct Light {
 	float ao;
 };
 
-// TODO - Nested struct problem?
-struct MaterialProperty {
-	vec4 default_value;
+struct MaterialProperty4D {
+	vec4 value_default;
 	bool use_texture;
 	sampler2D texture;
-}
+};
+struct MaterialProperty3D {
+	vec3 value_default;
+	bool use_texture;
+	sampler2D texture;
+};
+struct MaterialProperty2D {
+	vec2 value_default;
+	bool use_texture;
+	sampler2D texture;
+};
+struct MaterialProperty1D {
+	float value_default;
+	bool use_texture;
+	sampler2D texture;
+};
 struct Material {
-	MaterialProperty albedo;
-	MaterialProperty normal;
-	MaterialProperty roughness;
-	MaterialProperty metallic;
-	MaterialProperty ao;
-	MaterialProperty height;
+	MaterialProperty3D albedo;
+	MaterialProperty3D normal;
+	MaterialProperty1D roughness;
+	MaterialProperty1D metallic;
+	MaterialProperty1D ao;
+	MaterialProperty1D height;
+	MaterialProperty1D opacity;
 	float height_scale;
-}
+};
 uniform Material material;
 
 uniform uint pointLight_count;
@@ -38,6 +53,7 @@ uniform vec3 pointLight_position[MAX_POINT_LIGHTS];
 uniform vec3 directionalLight_direction;
 uniform bool useDirectionalLight;
 uniform vec3 camera_position;
+uniform vec3 camera_view_dir;
 
 struct VS_OUT {
   vec2 texcoord;
@@ -46,6 +62,7 @@ struct VS_OUT {
   mat3 TBN;
   vec3 tangent_point_light_positions[MAX_POINT_LIGHTS];
   vec3 tangent_camera_position;
+  vec3 tangent_camera_view_dir;
   vec3 tangent_P;
 };
 in VS_OUT VS;
@@ -53,7 +70,10 @@ in VS_OUT VS;
 layout (location = 0) out vec4 frag_color;
 layout (location = 1) out vec4 bright_color;
 
-vec4 getMaterialPropertyValue(MaterialProperty property, vec2 uv);
+vec4 getMaterialPropertyValue(MaterialProperty4D property, vec2 uv);
+vec3 getMaterialPropertyValue(MaterialProperty3D property, vec2 uv);
+vec2 getMaterialPropertyValue(MaterialProperty2D property, vec2 uv);
+float getMaterialPropertyValue(MaterialProperty1D property, vec2 uv);
 vec3 fresnelSchlick(float cosTheta, vec3 F0);
 float DistributionGGX(vec3 N, vec3 H, float roughness);
 float GeometrySchlickGGX(float NdotV, float roughness);
@@ -72,14 +92,20 @@ void main() {
 	vec3 N = vec3(0.0, 0.0, 1.0);
 	vec3 V = normalize(VS.tangent_camera_position - VS.tangent_P);
 
+	int max_count = 4000;
 	int count;
-	vec2 uv_parallax = (material.useTextureHeight) ? ParallaxMapping(VS.texcoord, V, 2000, count) : VS.texcoord;
+	// vec2 uv_parallax = (material.height.use_texture) ? ParallaxMapping(VS.texcoord, V, max_count, count) : VS.texcoord;
+	vec2 uv_parallax = VS.texcoord;
 
-	N = normalize(getMaterialPropertyValue(material.normal).rgb * 2.0 - 1.0);
-	vec3 albedo 	= getMaterialPropertyValue(material.albedo, uv_parallax).rgb;
-	float roughness = getMaterialPropertyValue(material.roughness, uv_parallax).r;
-	float metallic 	= getMaterialPropertyValue(material.metallic, uv_parallax).r;
-	float ao 		= getMaterialPropertyValue(material.ao, uv_parallax).r;
+	N = normalize(getMaterialPropertyValue(material.normal, uv_parallax) * 2.0 - 1.0);
+	if (!gl_FrontFacing)
+	{
+		N = -N;
+	}
+	vec3 albedo 	= getMaterialPropertyValue(material.albedo, uv_parallax);
+	float roughness = getMaterialPropertyValue(material.roughness, uv_parallax);
+	float metallic 	= getMaterialPropertyValue(material.metallic, uv_parallax);
+	float ao 		= getMaterialPropertyValue(material.ao, uv_parallax);
 
 	vec3 F0 = vec3(0.04);
 	F0 = mix(F0, albedo, metallic);
@@ -102,7 +128,7 @@ void main() {
 		light.metallic = metallic;
 		light.ao = ao;
 		Lo += renderLightInfluence(light);
-  }
+  	}
 
 	if (useDirectionalLight) {
 		Light light;
@@ -120,24 +146,37 @@ void main() {
 
   	vec3 ambient = vec3(0.03) * albedo * ao;
   	vec3 color = ambient + Lo;
-	// color = vec3(0.1 + 0.9 / (float(pointLight_count) + 1.0));
-	// if (VS.P.x > 0) color = vec3(1.0);
-	color = vec3(0.5, 0.0, 0.75);
+	//color = getMaterialPropertyValue(material.albedo, VS.texcoord);
+	//color = vec3(1.0 / float(count) + 0.2);
+	//color = vec3(getMaterialPropertyValue(material.height, VS.texcoord));
+	//color = getMaterialPropertyValue(material.normal, VS.texcoord);
+	//color = vec3(VS.texcoord, 0.0);
+	//color = vec3(2 * float(count) / float(max_count));
+	//color = material.albedo.use_texture ? glm::vec3(0.5, 0.0, 0.0) : glm::vec3(0.0, 0.0, 0.5) + material.albedo.value_default;
   	frag_color = vec4(color, 1.0);
 
 	float brightness = dot(frag_color.rgb, vec3(0.2126, 0.7152, 0.0722));
 	if (brightness > 1.0) {
-		bright_color = vec4(frag_color.rgb, 1.0);
+		bright_color = vec4(frag_color.rgb - vec3(1.0), 1.0);
 	} else {
 		bright_color = vec4(0.0, 0.0, 0.0, 1.0);
 	}
 }
 
-vec4 getMaterialPropertyValue(MaterialProperty property, vec2 uv) {
-	if (property.use_texture) {
-		return texture(property.texture, uv);
-	}
-	return property.default_value;
+vec4 getMaterialPropertyValue(MaterialProperty4D property, vec2 uv) {
+	return property.use_texture ? texture(property.texture, uv) : property.value_default;
+}
+
+vec3 getMaterialPropertyValue(MaterialProperty3D property, vec2 uv) {
+	return property.use_texture ? texture(property.texture, uv).rgb : property.value_default;
+}
+
+vec2 getMaterialPropertyValue(MaterialProperty2D property, vec2 uv) {
+	return property.use_texture ? texture(property.texture, uv).rg : property.value_default;
+}
+
+float getMaterialPropertyValue(MaterialProperty1D property, vec2 uv) {
+	return property.use_texture ? texture(property.texture, uv).r : property.value_default;
 }
 
 float getDepthFromHeightMap(sampler2D height_map, vec2 texcoord) {
@@ -154,7 +193,10 @@ vec2 ParallaxMapping(vec2 uv, vec3 V, int max_layers, out int count) {
 		return uv;
 	}
 	const float dist = length(VS.tangent_camera_position - VS.tangent_P);
-	const float num_layers = mix(mix(1, max_layers, abs(V.z)), max_layers, 1.0 / (1.0 + dist * dist));
+	const float capped_dist = max(0, dist - 5.0) / 4.0;
+	const float dist2 = capped_dist * capped_dist;
+	const float ratio = 1.0 / (1.0 + dist2);
+	const float num_layers = mix(mix(1, max_layers, ratio), 1, abs(V.z));
 	//const float num_layers = max_layers;
 	count = 1;
 	float layer_depth = 1.0 / num_layers;
@@ -189,7 +231,7 @@ vec3 renderLightInfluence(Light light) {
 	float NDF = DistributionGGX(light.N, H, light.roughness);
 	float G   = GeometrySmith(light.N, light.V, light.L, light.roughness);
 	float denominator = 4.0 * max(dot(light.N, light.V), 0.0)
-		* max(dot(light.N, light.L), 0.0);
+		* max(dot(light.N, light.L), 0.0) + 0.0001;
 	vec3 specular     = NDF * G * F / max(denominator, 0.001);
 	vec3 kS = F;
 	vec3 kD = vec3(1.0) - kS;

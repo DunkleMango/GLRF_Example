@@ -12,6 +12,7 @@ uniform mat4 projection;
 uniform uint pointLight_count;
 uniform vec3 pointLight_position[MAX_POINT_LIGHTS];
 uniform vec3 camera_position;
+uniform vec3 camera_view_dir;
 
 struct VS_OUT {
   vec2 texcoord;
@@ -20,6 +21,7 @@ struct VS_OUT {
   mat3 TBN;
   vec3 tangent_point_light_positions[MAX_POINT_LIGHTS];
   vec3 tangent_camera_position;
+  vec3 tangent_camera_view_dir;
   vec3 tangent_P;
 };
 out VS_OUT VS;
@@ -39,5 +41,6 @@ void main() {
 		VS.tangent_point_light_positions[i] = VS.TBN * pointLight_position[i];
 	}
   VS.tangent_camera_position = VS.TBN * camera_position;
+  VS.tangent_camera_view_dir = VS.TBN * camera_view_dir;
   VS.tangent_P = VS.TBN * VS.P;
 }

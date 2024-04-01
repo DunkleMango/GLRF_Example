@@ -1,15 +1,15 @@
 #version 460 core
-uniform sampler2D image;
+layout(binding = 0) uniform sampler2D image;
 
 uniform float weight[5] = float[] (0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216);
 uniform bool horizontal;
-uniform bool first_iteration;
 
 in vec2 interpolated_uv;
 
 out vec4 frag_color;
 
-void main() {
+void main()
+{
   vec2 uv_offset = 1.0 / textureSize(image, 0); // gets size of single texel
   vec3 result = texture(image, interpolated_uv).rgb * weight[0]; // current fragment's contribution
   if(horizontal) {
