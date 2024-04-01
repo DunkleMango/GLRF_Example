@@ -149,6 +149,10 @@ int main()
 	//pre-calculations
 	glm::mat4 projection = glm::perspective(glm::radians(55.0f), (GLfloat)screenResolution.width / (GLfloat)screenResolution.height, 0.1f, 100.0f);
 
+	// ======= CONFIGURATION ======= //
+	ShaderConfiguration configuration = ShaderConfiguration();
+	configuration.setMat4("projection", projection);
+
 	//pre-render updates
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_MULTISAMPLE);
@@ -165,10 +169,6 @@ int main()
 		calculateMouseOffset();
 		scene.processMouse(xOffset, yOffset);
 		scene.processInput(window);
-
-		// ======= CONFIGURATION ======= //
-		ShaderConfiguration configuration = ShaderConfiguration();
-		configuration.setMat4("projection", projection);
 
 		// ======= RENDERING ======= //
 		glClearColor(1.5f, 1.5f, 4.0f, 1.0f);
